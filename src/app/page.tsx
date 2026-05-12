@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
+import { createClient } from "@supabase/supabase-js";
 import {
   ArrowRight,
   BadgeCheck,
@@ -97,7 +98,7 @@ const stats = [
   ["42", "booked calls/month"]
 ];
 
-const process = ["Audit", "Strategy", "Build", "Launch", "Optimize"];
+const growthProcess = ["Audit", "Strategy", "Build", "Launch", "Optimize"];
 
 const cases = [
   {
@@ -157,12 +158,16 @@ const auditIncludes = [
 ];
 
 const formFields = [
-  { id: "name", label: "Name", type: "text", autoComplete: "name" },
-  { id: "email", label: "Email", type: "email", autoComplete: "email" },
-  { id: "business-type", label: "Business type", type: "text", autoComplete: "organization" },
-  { id: "website", label: "Website / Instagram URL", type: "url", autoComplete: "url" },
-  { id: "monthly-budget", label: "Monthly ad budget", type: "text", autoComplete: "off" }
+  { id: "name", name: "name", label: "Name", type: "text", autoComplete: "name" },
+  { id: "email", name: "email", label: "Email", type: "email", autoComplete: "email" },
+  { id: "business-type", name: "business_type", label: "Business type", type: "text", autoComplete: "organization" },
+  { id: "website", name: "website", label: "Website / Instagram URL", type: "url", autoComplete: "url" },
+  { id: "monthly-budget", name: "monthly_revenue", label: "Monthly ad budget", type: "text", autoComplete: "off" }
 ];
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const faqs = [
   ["Who do you work with?", "We specialize in barbershops and eCommerce brands that want a clearer system for turning attention into booked calls, purchases and repeat revenue."],
@@ -322,6 +327,8 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMobileCta, setShowMobileCta] = useState(false);
 
   useEffect(() => {
@@ -334,8 +341,35 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSubmitError("");
+
+    if (!supabase) {
+      setSubmitError("Supabase is not configured. Please add the site environment variables and try again.");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const lead = {
+      name: String(formData.get("name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      business_type: String(formData.get("business_type") || "").trim(),
+      website: String(formData.get("website") || "").trim(),
+      monthly_revenue: String(formData.get("monthly_revenue") || "").trim(),
+      biggest_problem: String(formData.get("biggest_problem") || "").trim(),
+      status: "new"
+    };
+
+    setIsSubmitting(true);
+    const { error } = await supabase.from("leads").insert(lead);
+    setIsSubmitting(false);
+
+    if (error) {
+      setSubmitError("We could not submit your audit request. Please check your details and try again.");
+      return;
+    }
+
     setSubmitted(true);
   }
 
@@ -580,7 +614,7 @@ export default function Home() {
         <div className="relative mx-auto max-w-7xl">
           <SectionHeading eyebrow="Process" title="Our 5-step growth process" dark />
           <div className="mt-9 grid gap-3.5 sm:mt-12 sm:gap-4 md:grid-cols-5">
-            {process.map((step, index) => (
+            {growthProcess.map((step, index) => (
               <motion.div className="premium-card dark-card flex items-center justify-between rounded-[1.5rem] border border-white/10 bg-white/[0.07] p-5 backdrop-blur sm:block sm:rounded-[1.75rem] sm:p-6" key={step} {...fadeUp(index * 0.08)}>
                 <p className="relative z-10 font-heading text-4xl font-extrabold text-orange sm:mb-10 sm:text-5xl">0{index + 1}</p>
                 <h3 className="relative z-10 font-heading text-xl font-extrabold">{step}</h3>
@@ -679,7 +713,7 @@ export default function Home() {
                       autoComplete={field.autoComplete}
                       className="min-h-[3.25rem] rounded-2xl border border-ink/10 bg-cream px-4 text-base outline-none transition focus:border-orange focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,107,44,0.12)] sm:min-h-12 sm:text-sm"
                       id={field.id}
-                      name={field.id}
+                      name={field.name}
                       required
                       type={field.type}
                     />
@@ -690,12 +724,21 @@ export default function Home() {
                   <textarea
                     className="min-h-32 rounded-2xl border border-ink/10 bg-cream px-4 py-3 text-base outline-none transition focus:border-orange focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,107,44,0.12)] sm:min-h-28 sm:text-sm"
                     id="growth-problem"
-                    name="growth-problem"
+                    name="biggest_problem"
                     required
                   />
                 </label>
-                <button className="group mt-2 inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-orange px-6 py-4 text-sm font-extrabold text-white shadow-glow transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:shadow-premium" type="submit">
-                  Get Free Growth Audit
+                {submitError ? (
+                  <p className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-sm font-bold leading-6 text-ink" role="alert">
+                    {submitError}
+                  </p>
+                ) : null}
+                <button
+                  className="group mt-2 inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-orange px-6 py-4 text-sm font-extrabold text-white shadow-glow transition duration-300 hover:-translate-y-0.5 hover:bg-ink hover:shadow-premium disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isSubmitting}
+                  type="submit"
+                >
+                  {isSubmitting ? "Submitting..." : "Get Free Growth Audit"}
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </button>
               </>
