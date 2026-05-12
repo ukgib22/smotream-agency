@@ -1,0 +1,5 @@
+.tools
+npm.tgz
+qa-*.png
+.next
+node_modules

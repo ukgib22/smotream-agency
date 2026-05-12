@@ -1,0 +1,8 @@
+node_modules
+.tools
+npm.tgz
+.next
+out
+dist
+.env*
+*.log
