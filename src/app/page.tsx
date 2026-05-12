@@ -169,6 +169,28 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
+function calculateLeadScore({
+  monthlyRevenue,
+  businessType,
+  website,
+  biggestProblem
+}: {
+  monthlyRevenue: string;
+  businessType: string;
+  website: string;
+  biggestProblem: string;
+}) {
+  const normalizedRevenue = monthlyRevenue.toLowerCase().replace(/[$,\s]/g, "");
+  const hasQualifiedRevenue = normalizedRevenue.includes("5000+") || normalizedRevenue.includes("10k+");
+  const score =
+    (hasQualifiedRevenue ? 70 : 0) +
+    (businessType ? 10 : 0) +
+    (website ? 10 : 0) +
+    (biggestProblem ? 10 : 0);
+
+  return Math.min(score, 100);
+}
+
 const faqs = [
   ["Who do you work with?", "We specialize in barbershops and eCommerce brands that want a clearer system for turning attention into booked calls, purchases and repeat revenue."],
   ["Do you work with barbershops?", "Yes. We build local acquisition systems for barbershops using ads, booking funnels, review flows, referrals and automated reminders."],
@@ -358,8 +380,17 @@ export default function Home() {
       website: String(formData.get("website") || "").trim(),
       monthly_revenue: String(formData.get("monthly_revenue") || "").trim(),
       biggest_problem: String(formData.get("biggest_problem") || "").trim(),
-      status: "new"
+      status: "new",
+      source: "website",
+      lead_score: 0
     };
+
+    lead.lead_score = calculateLeadScore({
+      monthlyRevenue: lead.monthly_revenue,
+      businessType: lead.business_type,
+      website: lead.website,
+      biggestProblem: lead.biggest_problem
+    });
 
     setIsSubmitting(true);
     const { error } = await supabase.from("leads").insert(lead);
