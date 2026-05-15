@@ -845,6 +845,19 @@ export default function Home() {
           <div>
             <p className="font-heading text-xl font-extrabold">SMOTREAM Marketing Agency</p>
             <p className="mt-2 text-sm text-white/60">Client acquisition systems for barbershops and eCommerce brands.</p>
+            <div className="mt-4 flex flex-col gap-2 text-sm font-semibold text-white/60 sm:flex-row sm:items-center sm:gap-4">
+              <a className="transition hover:text-orange" href="mailto:contact@smotream.com">
+                contact@smotream.com
+              </a>
+              <a
+                className="transition hover:text-orange"
+                href="https://instagram.com/smotream.media"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                @smotream.media
+              </a>
+            </div>
           </div>
           <a className="text-sm font-extrabold text-lime" href="#audit">
             Get Free Growth Audit
