@@ -159,6 +159,7 @@ const auditIncludes = [
 
 const formFields = [
   { id: "name", name: "name", label: "Name", type: "text", autoComplete: "name" },
+  { id: "phone", name: "phone", label: "Phone", type: "tel", autoComplete: "tel" },
   { id: "email", name: "email", label: "Email", type: "email", autoComplete: "email" },
   { id: "business-type", name: "business_type", label: "Business type", type: "text", autoComplete: "organization" },
   { id: "website", name: "website", label: "Website / Instagram URL", type: "url", autoComplete: "url" },
@@ -367,12 +368,9 @@ export default function Home() {
     event.preventDefault();
     setSubmitError("");
 
-    if (!supabase) {
-      setSubmitError("Supabase is not configured. Please add the site environment variables and try again.");
-      return;
-    }
-
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const phone = String(formData.get("phone") || "").trim();
     const lead = {
       name: String(formData.get("name") || "").trim(),
       email: String(formData.get("email") || "").trim(),
@@ -393,15 +391,44 @@ export default function Home() {
     });
 
     setIsSubmitting(true);
-    const { error } = await supabase.from("leads").insert(lead);
-    setIsSubmitting(false);
 
-    if (error) {
-      setSubmitError("We could not submit your audit request. Please check your details and try again.");
-      return;
+    try {
+      if (supabase) {
+        const { error } = await supabase.from("leads").insert(lead);
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      const telegramResponse = await fetch("/api/telegram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: lead.name,
+          phone,
+          email: lead.email,
+          business: lead.business_type,
+          company: lead.business_type,
+          message: lead.biggest_problem,
+          pageUrl: window.location.href,
+          submittedAt: new Date().toISOString()
+        })
+      });
+
+      if (!telegramResponse.ok) {
+        throw new Error("Telegram submission failed");
+      }
+
+      setSubmitted(true);
+      form.reset();
+    } catch {
+      setSubmitError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setSubmitted(true);
   }
 
   return (
@@ -731,8 +758,7 @@ export default function Home() {
                   <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-lime">
                     <Check className="h-8 w-8" />
                   </div>
-                  <p className="font-heading text-3xl font-extrabold">Your audit request has been received.</p>
-                  <p className="mt-3 text-ink/65">We will contact you soon.</p>
+                  <p className="font-heading text-3xl font-extrabold">Thanks, we’ll contact you shortly.</p>
                 </div>
               </div>
             ) : (
