@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
-import { createClient } from "@supabase/supabase-js";
 import {
   ArrowRight,
   BadgeCheck,
@@ -165,32 +164,6 @@ const formFields = [
   { id: "website", name: "website", label: "Website / Instagram URL", type: "url", autoComplete: "url" },
   { id: "monthly-budget", name: "monthly_revenue", label: "Monthly ad budget", type: "text", autoComplete: "off" }
 ];
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
-
-function calculateLeadScore({
-  monthlyRevenue,
-  businessType,
-  website,
-  biggestProblem
-}: {
-  monthlyRevenue: string;
-  businessType: string;
-  website: string;
-  biggestProblem: string;
-}) {
-  const normalizedRevenue = monthlyRevenue.toLowerCase().replace(/[$,\s]/g, "");
-  const hasQualifiedRevenue = normalizedRevenue.includes("5000+") || normalizedRevenue.includes("10k+");
-  const score =
-    (hasQualifiedRevenue ? 70 : 0) +
-    (businessType ? 10 : 0) +
-    (website ? 10 : 0) +
-    (biggestProblem ? 10 : 0);
-
-  return Math.min(score, 100);
-}
 
 const faqs = [
   ["Who do you work with?", "We specialize in barbershops and eCommerce brands that want a clearer system for turning attention into booked calls, purchases and repeat revenue."],
@@ -369,53 +342,35 @@ export default function Home() {
     setSubmitError("");
 
     const form = event.currentTarget;
-    const formData = new FormData(form);
-    const phone = String(formData.get("phone") || "").trim();
-    const lead = {
-      name: String(formData.get("name") || "").trim(),
-      email: String(formData.get("email") || "").trim(),
-      business_type: String(formData.get("business_type") || "").trim(),
-      website: String(formData.get("website") || "").trim(),
-      monthly_revenue: String(formData.get("monthly_revenue") || "").trim(),
-      biggest_problem: String(formData.get("biggest_problem") || "").trim(),
-      status: "new",
-      source: "website",
-      lead_score: 0
+    const submittedFormData = new FormData(form);
+    const formData = {
+      name: String(submittedFormData.get("name") || "").trim(),
+      phone: String(submittedFormData.get("phone") || "").trim(),
+      email: String(submittedFormData.get("email") || "").trim(),
+      business: String(submittedFormData.get("business_type") || "").trim(),
+      company: String(submittedFormData.get("business_type") || "").trim(),
+      website: String(submittedFormData.get("website") || "").trim(),
+      monthly_revenue: String(submittedFormData.get("monthly_revenue") || "").trim(),
+      message: String(submittedFormData.get("biggest_problem") || "").trim(),
+      pageUrl: window.location.href,
+      submittedAt: new Date().toISOString()
     };
-
-    lead.lead_score = calculateLeadScore({
-      monthlyRevenue: lead.monthly_revenue,
-      businessType: lead.business_type,
-      website: lead.website,
-      biggestProblem: lead.biggest_problem
-    });
 
     setIsSubmitting(true);
 
     try {
-      if (supabase) {
-        const { error } = await supabase.from("leads").insert(lead);
-
-        if (error) {
-          throw error;
-        }
-      }
-
       const telegramResponse = await fetch("/api/telegram", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          name: lead.name,
-          phone,
-          email: lead.email,
-          business: lead.business_type,
-          company: lead.business_type,
-          message: lead.biggest_problem,
-          pageUrl: window.location.href,
-          submittedAt: new Date().toISOString()
-        })
+        body: JSON.stringify(formData)
+      });
+
+      console.log("Telegram submit response", {
+        ok: telegramResponse.ok,
+        status: telegramResponse.status,
+        statusText: telegramResponse.statusText
       });
 
       if (!telegramResponse.ok) {
