@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const telegramChatId = "8179519607";
+const chatId = "-1003971537022";
 
 type TelegramLeadPayload = {
   name?: string;
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      chat_id: telegramChatId,
+      chat_id: chatId,
       text: messageLines.join("\n"),
       parse_mode: "HTML",
       disable_web_page_preview: true
