@@ -9,6 +9,7 @@ type TelegramLeadPayload = {
   business?: string;
   company?: string;
   website?: string;
+  monthlyRevenue?: string;
   message?: string;
   pageUrl?: string;
   submittedAt?: string;
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     formatLine("Email", payload.email),
     formatLine("Business / Company", payload.business || payload.company),
     formatLine("Website", payload.website),
+    formatLine("Monthly Ad Budget", payload.monthlyRevenue),
     formatLine("Message", payload.message),
     formatLine("Page URL", payload.pageUrl),
     formatLine("Date / Time", payload.submittedAt || new Date().toISOString())

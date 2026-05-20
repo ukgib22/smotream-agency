@@ -351,6 +351,7 @@ export default function Home() {
       company: String(submittedFormData.get("business_type") || "").trim(),
       website: String(submittedFormData.get("website") || "").trim(),
       monthly_revenue: String(submittedFormData.get("monthly_revenue") || "").trim(),
+      monthlyRevenue: String(submittedFormData.get("monthly_revenue") || "").trim(),
       message: String(submittedFormData.get("biggest_problem") || "").trim(),
       pageUrl: window.location.href,
       submittedAt: new Date().toISOString()
